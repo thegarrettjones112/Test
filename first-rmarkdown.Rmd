@@ -1,0 +1,202 @@
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+
+#install.packages("leaflet") # run this line once in console to get package
+library(leaflet)
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+covid_url <- "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
+covid_state_url <- "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv"
+
+covid_data <- read_csv(covid_url) 
+covid_state_data <- read_csv(covid_state_url)
+```
+
+## Background
+This is the first RMarkdown file we'll use in class.  Once you open the file, you may see messages that you are missing some packages needed. Feel free to click the messages that ask you to install the packages, or install them manually by running the following lines. Note that there is an "eval = FALSE" command in the top of the block of code below, which prevents this code chunk from running when you knit the document.
+
+```{r eval=FALSE}
+install.packages("tidyverse")
+install.packages("leaflet")
+```
+
+Once you have all the packages installed, click on Knit to create your document. You may need to install some other packages as well, the first time you click Knit. An HTML document should appear. 
+
+This goal for this document is to provide you an example of an RMarkdown (.Rmd) file to use as an example for the rest of the semester. We'll use the `tidyverse` packages to wrangle some data related to the COVID pandemic and produce a few visualizations. Then we'll see a few more visualizations using the `ggplot()` command (gg stands for Grammar of Graphics), something we'll be exploring extensively in the next few weeks. We'll finish with a brief demonstration of the leaflet package.
+
+Note that you do not need to be able to reproduce anything from this document, rather the main goal is to (1) make sure you know how to install packages, (2) knit RMarkdown documents in RStudio, and (3) make minor edits to .Rmd documents.  
+
+## Data Wrangling
+
+It's common practice to load your data at the top of a report, and then before creating any graphics, wrangle the data.  We loaded 2 data sets from the NY Times COVID github repo. The data sets contain total case counts. The next block of code uses `mutate` to add another column to these data sets that gives the daily case counts. 
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+covid_data <- 
+  covid_data %>% 
+  mutate(daily_new_cases = cases - lag(cases))
+
+covid_state_data <- 
+  covid_state_data %>% 
+  group_by(state) %>% 
+  mutate(daily_new_cases = cases - lag(cases))
+```
+
+We can view these data sets in many ways. 
+
+```{r}
+# Both of the following call the head() function. 
+# The second uses pipe (%>%) notation, which allows us to focus on the data first, and then the action second. 
+# Rather than writing f(x), so f at x, piping notation let's us write x %>% f, or x goes into f. 
+head(covid_data)
+covid_data %>% head()
+
+#glimpse lists the variables on the left, rather than the top. 
+covid_data %>% glimpse()
+```
+
+If you want to view the data as a spreadsheet, then the `View()` command will do this for you, but beware that using `View()` in an RMarkdown file may cause problems when trying to knit (hence the "eval = FALSE" at the top of the code chunk below).
+
+```{r eval = FALSE}
+covid_data %>% View()
+```
+
+## Data Visualization
+Now let's examine a few visualzations, using `ggplot()`, part of the `tidyverse`. First let's look at cases in the US, as totals, and then as daily new cases. 
+
+```{r}
+# Use this R-Chunk to plot & visualize your data!
+covid_data %>% 
+  ggplot(aes(x = date, y = cases)) +
+  geom_line()
+```
+
+```{r}
+covid_data %>% 
+  mutate(daily_new_cases = cases - lag(cases)) %>% 
+  ggplot() +
+  geom_line(aes(x = date, y = daily_new_cases))
+```
+
+Now let's compare some states in various ways, using a few different features from `ggplot()`. 
+```{r}
+covid_state_data %>% 
+  filter(state %in% c("Idaho","Utah")) %>% 
+  ggplot(aes(x = date, y = cases)) +
+  geom_line() +
+  facet_wrap(~state,ncol = 1)
+```
+
+```{r}
+covid_state_data %>% 
+  filter(state %in% c("Idaho","Utah")) %>% 
+  ggplot(aes(x = date, y = cases, color = state)) +
+  geom_line()
+```
+
+```{r}
+covid_state_data %>% 
+  filter(state %in% c("Idaho","Utah")) %>% 
+  ggplot(aes(x = date, y = daily_new_cases)) +
+  geom_line() +
+  facet_wrap(~state)
+```
+
+```{r}
+covid_state_data %>% 
+  filter(state %in% c("California","Florida")) %>% 
+  ggplot(aes(x = date, y = cases)) +
+  geom_line() +
+  facet_wrap(~state)
+```
+
+```{r}
+covid_state_data %>% 
+  filter(state %in% c("California","Florida")) %>% 
+  ggplot(aes(x = date, y = daily_new_cases)) +
+  geom_line() +
+  facet_wrap(~state, nrow = 2)
+```
+
+In the .Rmd file, try changing the states to compare other similar sized (why) states. Use the play button on the corresponding code chunk to get a preview of what the new code will look like, before you Knit the document again. 
+
+Can you find the states that are currently experiencing the most explosive outbreak of COVID?
+
+## Conclusions
+These graphs use data that's updated every day, so I'll let you make any interesting observations about the most recent trends.  It is interesting to note that in June of 2021, there appears to be a day where -40000 cases were reported in Florida, so this is most likely an over count that was corrected on that day.
+
+## Additional Examples Using Built in Data Sets
+Here are some graphics related to the mtcars data set we already explored, as well as a new mpg data set that people commonly use when sharing examples online. The point for sharing them here is to help you see that when working with ggplot, there is a very common flow for producing graphics.  We'll explore this in depth over the next few weeks. 
+
+```{r}
+mtcars %>% head()
+
+mtcars %>% 
+  ggplot(aes(x = wt, y = mpg))+
+  geom_point()
+
+mtcars %>% 
+  ggplot(aes(x = wt, y = mpg))+
+  geom_point() +
+  facet_wrap(~am)
+
+mtcars %>% 
+  ggplot(aes(x = wt, y = mpg, color = am))+
+  geom_point()
+
+mtcars %>% 
+  mutate(am = factor(am)) %>% 
+  ggplot(aes(x = wt, y = mpg, color = am))+
+  geom_point()
+
+mtcars %>% 
+  mutate(am = factor(am)) %>% 
+  ggplot(aes(x = wt, y = mpg, color = am))+
+  geom_point() +
+  geom_smooth()
+```
+
+```{r}
+mpg %>% glimpse()
+
+mpg %>% 
+  ggplot(aes(x = class, y = cty))+
+  geom_boxplot()
+```
+
+Here's one more dataset, with an accompanying histogram and scatterplot. 
+```{r}
+beaver1 %>% glimpse()
+
+beaver1 %>% 
+  ggplot(aes(x = temp)) +
+  geom_histogram()
+
+beaver1 %>% 
+  ggplot(aes(x = time, y = temp)) +
+  geom_point()
+```
+
+
+## Additional Packages
+There are tons of packages freely available for use. 
+At the beginning of our document you'll notice we loaded the `leaflet` package (see https://rstudio.github.io/leaflet/ for more info).  
+We can use this to construct interactive maps. 
+
+```{r}
+m <- leaflet() %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addMarkers(lng=-111.80685, lat=43.81237, popup="Where i Parked my car last night")
+m  # Print the map
+```
+
+Try modifying the code above to get the map to center on some place of importance to you. 
+If you have extra time, explore the leaflet website linked to above, and add some extra features to your map. 
